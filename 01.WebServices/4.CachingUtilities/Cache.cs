@@ -39,22 +39,66 @@ namespace _4.CachingUtilities
         {            
             //var itemToCompare = new CacheItem();
             //itemToCompare.CacheKey = key;
-            key.Add(new ValuePair() { Key = "az", Value = 3 });
+            //key.Add(new ValuePair() { Key = "az", Value = 3 });
 
             //var query = Query<CacheItem>.EQ(c => c.CacheKey, itemToCompare.CacheKey);
 
-            var query = this.collection.AsQueryable();
+            List<IMongoQuery> queries = new List<IMongoQuery>();
             foreach (var item in key)
 	        {
-                query = query.Where(c => c.CacheKey.Contains(item, new ValuePairCompararer()));
+                switch (item.Direction)
+                {
+                    case (ComparisonDirection.GreaterInclusive):
+                        queries.Add(Query.And(Query.EQ("Key", item.Key), Query.GTE("Value", item.Value), Query.EQ("Direction", item.Direction)));
+                        break;
+                    case (ComparisonDirection.GreaterExclusive):
+                        queries.Add(Query.And(Query.EQ("Key", item.Key), Query.GT("Value", item.Value), Query.EQ("Direction", item.Direction)));
+                        break;
+                    case (ComparisonDirection.LesserInclusive):
+                        queries.Add(Query.And(Query.EQ("Key", item.Key), Query.LTE("Value", item.Value), Query.EQ("Direction", item.Direction)));
+                        break;
+                    case (ComparisonDirection.LesserExclusive):
+                        queries.Add(Query.And(Query.EQ("Key", item.Key), Query.LT("Value", item.Value), Query.EQ("Direction", item.Direction)));
+                        break;
+                    case (ComparisonDirection.ExactlyEqual):
+                        queries.Add(Query.And(Query.EQ("Key", item.Key), Query.EQ("Value", item.Value), Query.EQ("Direction", item.Direction)));
+                        break;
+                }
+
+                /*if (item.Direction == ComparisonDirection.GreaterInclusive)
+                {
+                    queries.Add(Query.And(Query.EQ("Key", item.Key), Query.GTE("Value", item.Value), Query.EQ("Direction", item.Direction)));
+                }
+                else if (item.Direction == ComparisonDirection.Lesser)
+                {
+                    queries.Add(Query.And(Query.EQ("Key", item.Key), Query.LTE("Value", item.Value), Query.EQ("Direction", item.Direction)));
+                }*/
 	        }
 
+            /*var queryNew = Query.ElemMatch("CacheKey", Query.And(queries));
+            var queryResult = this.collection.Find(queryNew);
+            IEnumerable<CacheItem> documentResult = queryResult.ToList();*/
+
+            List<IMongoQuery> arrayQueries = new List<IMongoQuery>();
+            foreach (var initialQuery in queries)
+            {
+                arrayQueries.Add(Query.ElemMatch("CacheKey", initialQuery));
+            }
+
+            var queryText = Query.And(arrayQueries);
+            string jsonQuery = queryText.ToString();
+            var query = this.collection.Find(queryText);
 
             var entity = query.FirstOrDefault();
+            /*foreach (var item in key)
+            {
+                documentResult = documentResult.Where(c => c.CacheKey.Contains(item, new ValuePairCompararer());
+            }*/
+
 
             if (entity == null || entity.Expires <= DateTime.Now.ToUniversalTime())
             {
-                Remove(key);
+                Remove(entity);
                 return null;
             }
 
@@ -80,14 +124,14 @@ namespace _4.CachingUtilities
             return o;*/
         }
 
-        public void Remove(ICollection<ValuePair> key)
+        public void Remove(CacheItem entity)
         {
 
-            var itemToRemove = new CacheItem();
-            itemToRemove.CacheKey = key;
-            var query = Query<CacheItem>.EQ(c => c.CacheKey, itemToRemove.CacheKey);
-
-            this.collection.Remove(query);
+            //var query = Query.EQ(c => c.CacheKey, itemToRemove.CacheKey);
+            if (entity != null)
+            {
+                this.collection.Remove(Query.EQ("_id", entity.Id));
+            }
             /*using (Mongo mongo = Mongo.Create(Helper.ConnectionString()))
             {
                 MongoCollection<CacheItem> coll = mongo.GetCollection<CacheItem>();
@@ -105,7 +149,7 @@ namespace _4.CachingUtilities
             //serializer.NullValueHandling = NullValueHandling.Ignore;
 
             //var writer = new Json
-            key.Add(new ValuePair() { Key = "az", Value = 3 });
+            //key.Add(new ValuePair() { Key = "az", Value = 3 });
 
             var f = new BinaryFormatter();
             var ms = new MemoryStream();

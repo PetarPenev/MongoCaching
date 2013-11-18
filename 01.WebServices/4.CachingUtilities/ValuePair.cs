@@ -12,6 +12,8 @@ namespace _4.CachingUtilities
 
         public int Value { get; set; }
 
+        public ComparisonDirection Direction { get; set; }
+
         bool IEquatable<ValuePair>.Equals(ValuePair other)
         {
             return this.Key.Equals(other.Key, StringComparison.InvariantCultureIgnoreCase)

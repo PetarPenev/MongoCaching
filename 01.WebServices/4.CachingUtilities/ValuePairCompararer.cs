@@ -10,7 +10,7 @@ namespace _4.CachingUtilities
     {
         public bool Equals(ValuePair x, ValuePair y)
         {
-            return x.Key.Equals(y.Key) && (x.Value >= y.Value);
+            return x.Key.Equals(y.Key) && x.Direction.Equals(y.Direction) /*&& (x.Value >= y.Value)*/;
         }
 
         public int GetHashCode(ValuePair obj)
