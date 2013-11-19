@@ -22,11 +22,16 @@ namespace _4.CachingUtilities
             var server = client.GetServer();
             var database = server.GetDatabase("cachedqueries");
             this.collection = database.GetCollection<CacheItem>("cache");
+
+            var keys = IndexKeys.Ascending("Expires");
+            var options = IndexOptions.SetTimeToLive(TimeSpan.FromMinutes(2));
+            this.collection.EnsureIndex(keys, options);
         }
+
         public object this[ICollection<ValuePair> cacheKey]
         {
             get { return Get(cacheKey); }
-            set { Add(cacheKey, value, DateTime.Now.AddMinutes(2)); }
+            set { Add(cacheKey, value, DateTime.Now/*.AddMinutes(2)*/); }
         }
 
         public object Add(ICollection<ValuePair> key, object entry, DateTime utcExpiry)
@@ -96,9 +101,9 @@ namespace _4.CachingUtilities
             }*/
 
 
-            if (entity == null || entity.Expires <= DateTime.Now.ToUniversalTime())
+            if (entity == null /*|| entity.Expires <= DateTime.Now.ToUniversalTime()*/)
             {
-                Remove(entity);
+                //Remove(entity);
                 return null;
             }
 
