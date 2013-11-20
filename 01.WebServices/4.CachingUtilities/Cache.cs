@@ -21,8 +21,13 @@ namespace _4.CachingUtilities
             var client = new MongoClient(connectionString);
             var server = client.GetServer();
             var database = server.GetDatabase("cachedqueries");
-            this.collection = database.GetCollection<CacheItem>("cache");
 
+            if (!database.CollectionExists("cache"))
+            {
+                database.CreateCollection("cache", CollectionOptions.SetCapped(true).SetMaxSize(100000).SetMaxDocuments(5));                
+            }
+
+            this.collection = database.GetCollection<CacheItem>("cache");
             var keys = IndexKeys.Ascending("Expires");
             var options = IndexOptions.SetTimeToLive(TimeSpan.FromMinutes(2));
             this.collection.EnsureIndex(keys, options);
